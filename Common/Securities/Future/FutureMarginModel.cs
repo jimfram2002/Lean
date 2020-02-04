@@ -46,6 +46,11 @@ namespace QuantConnect.Securities.Future
         public decimal MaintenanceMarginRequirement => GetCurrentMarginRequirements(_security)?.MaintenanceOvernight ?? 0m;
 
         /// <summary>
+        /// Intraday margin for the contract effective from the date of change
+        /// </summary>
+        public decimal IntradayMarginRequirement => GetCurrentMarginRequirements(_security)?.Intraday ?? 0m;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="FutureMarginModel"/>
         /// </summary>
         /// <param name="requiredFreeBuyingPowerPercent">The percentage used to determine the required unused buying power for the account.</param>
@@ -84,7 +89,7 @@ namespace QuantConnect.Securities.Future
         /// Get the maximum market order quantity to obtain a position with a given buying power percentage.
         /// Will not take into account free buying power.
         /// </summary>
-        /// <param name="parameters">An object containing the portfolio, the security and the target buying power percentage</param>
+        /// <param name="parameters">An object containing the portfolio, the security and the target signed buying power percentage</param>
         /// <returns>Returns the maximum allowed market order quantity and if zero, also the reason</returns>
         public override GetMaximumOrderQuantityResult GetMaximumOrderQuantityForTargetBuyingPower(
             GetMaximumOrderQuantityForTargetBuyingPowerParameters parameters)
@@ -132,8 +137,13 @@ namespace QuantConnect.Securities.Future
 
             var marginReq = GetCurrentMarginRequirements(security);
 
+            if (security.Exchange.ExchangeOpen)
+            {
+                return marginReq.Intraday * security.Holdings.AbsoluteQuantity;
+            }
+
             // margin is per contract
-            return marginReq.MaintenanceOvernight * GetIntradayMarginCorrectionFactor(security) * security.Holdings.AbsoluteQuantity;
+            return marginReq.MaintenanceOvernight * security.Holdings.AbsoluteQuantity;
         }
 
         /// <summary>
@@ -147,7 +157,7 @@ namespace QuantConnect.Securities.Future
             var marginReq = GetCurrentMarginRequirements(security);
 
             // margin is per contract
-            return marginReq.InitialOvernight * GetIntradayMarginCorrectionFactor(security) * quantity;
+            return marginReq.InitialOvernight * quantity;
         }
 
         private MarginRequirementsEntry GetCurrentMarginRequirements(Security security)
@@ -245,27 +255,21 @@ namespace QuantConnect.Securities.Future
                 Log.Trace($"Couldn't parse Maintenance margin requirements while reading future margin requirement file. Date {line[2]}. Line: {csvLine}");
             }
 
-            return new MarginRequirementsEntry()
+            // default value, if present in file we try to parse
+            decimal intraday = initial / 20m;
+            if (line.Length >= 4
+                && !decimal.TryParse(line[3], out intraday))
+            {
+                Log.Trace($"Couldn't parse Intraday margin requirements while reading future margin requirement file. Date {line[3]}. Line: {csvLine}");
+            }
+
+            return new MarginRequirementsEntry
             {
                 Date = date,
                 InitialOvernight = initial,
-                MaintenanceOvernight = maintenance
+                MaintenanceOvernight = maintenance,
+                Intraday = intraday
             };
-        }
-
-        /// <summary>
-        /// Get margin correction factor if not in regular market hours
-        /// </summary>
-        /// <param name="security">The security to apply conditional leverage to</param>
-        /// <returns>The margin correction factor</returns>
-        private decimal GetIntradayMarginCorrectionFactor(Security security)
-        {
-            // when the market is open we use intraday margins else use the entire margin
-            if (security.Exchange.ExchangeOpen)
-            {
-                return 1m / 20m;
-            }
-            return 1;
         }
 
         // Private POCO class for modeling margin requirements at given date
@@ -285,6 +289,11 @@ namespace QuantConnect.Securities.Future
             /// Maintenance overnight margin for the contract effective from the date of change
             /// </summary>
             public decimal MaintenanceOvernight;
+
+            /// <summary>
+            /// Intraday margin for the contract effective from the date of change
+            /// </summary>
+            public decimal Intraday;
         }
     }
 }

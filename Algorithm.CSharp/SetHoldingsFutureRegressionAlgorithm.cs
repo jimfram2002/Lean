@@ -122,7 +122,7 @@ namespace QuantConnect.Algorithm.CSharp
 
                 var security = Securities[_contractSymbol];
                 var model = security.BuyingPowerModel as FutureMarginModel;
-                var marginUsed = model.MaintenanceMarginRequirement * security.Holdings.AbsoluteQuantity * (security.Exchange.ExchangeOpen ? (1m/20m) : 1);
+                var marginUsed = model.IntradayMarginRequirement * security.Holdings.AbsoluteQuantity;
 
                 if ((Portfolio.TotalMarginUsed - marginUsed) != 0)
                 {
@@ -155,11 +155,11 @@ namespace QuantConnect.Algorithm.CSharp
         {
             {"Total Trades", "3"},
             {"Average Win", "0%"},
-            {"Average Loss", "-11.48%"},
-            {"Compounding Annual Return", "-100.000%"},
-            {"Drawdown", "10.700%"},
+            {"Average Loss", "-0.58%"},
+            {"Compounding Annual Return", "-73.382%"},
+            {"Drawdown", "0.500%"},
             {"Expectancy", "-1"},
-            {"Net Profit", "-20.406%"},
+            {"Net Profit", "-1.082%"},
             {"Sharpe Ratio", "0"},
             {"Probabilistic Sharpe Ratio", "0%"},
             {"Loss Rate", "100%"},
@@ -172,13 +172,13 @@ namespace QuantConnect.Algorithm.CSharp
             {"Information Ratio", "0"},
             {"Tracking Error", "0"},
             {"Treynor Ratio", "0"},
-            {"Total Fees", "$26307.00"},
-            {"Fitness Score", "0.539"},
+            {"Total Fees", "$1394.90"},
+            {"Fitness Score", "0.5"},
             {"Kelly Criterion Estimate", "0"},
             {"Kelly Criterion Probability Value", "1"},
             {"Sortino Ratio", "79228162514264337593543950335"},
-            {"Return Over Maximum Drawdown", "-4.9"},
-            {"Portfolio Turnover", "494.281"},
+            {"Return Over Maximum Drawdown", "-69.664"},
+            {"Portfolio Turnover", "21.088"},
             {"Total Insights Generated", "3"},
             {"Total Insights Closed", "2"},
             {"Total Insights Analysis Completed", "2"},
